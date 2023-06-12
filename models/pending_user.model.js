@@ -23,14 +23,18 @@ const pendingUserSchema = new mongoose.Schema({
   },
   phoneNumber: {
     type: String,
-    validate: {
-      validator: function (v) {
-        const phoneRegex = /^\d{10}$/;
-        return phoneRegex.test(v);
-      },
-      message: "Invalid phone number format",
-    },
+    // validate: {
+    //   validator: function (v) {
+    //     const phoneRegex = /^\d{10}$/;
+    //     return phoneRegex.test(v);
+    //   },
+    //   message: "Invalid phone number format",
+    // },
     unique: true,
+  },
+  familyMembers: {
+    type: Number,
+    default: 0,
   },
 });
 

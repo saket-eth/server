@@ -8,7 +8,7 @@ const PendingUser = require("../models/pending_user.model");
 const router = require("express").Router();
 const sha256 = require("sha256");
 
-const { generateOTP, hashOTP } = require("../helpers/OTP");
+const { generateOTP, hashOTP, sendOTP } = require("../helpers/OTP");
 const { generateAccessToken } = require("../helpers/jwt");
 const { response } = require("express");
 const { sendMail } = require("../helpers/email");
@@ -62,16 +62,18 @@ router.post("/google", async (req, res) => {
 });
 
 router.post("/details", async (req, res) => {
-  const { firstName, lastName, email, password } = req.body;
+  const { firstName, lastName, email, phoneNumber, password } = req.body;
   try {
     const checkUser = await User.findOne({
-      email,
+      $and: [{ email }, { phoneNumber }],
     }).exec();
     if (checkUser) {
       return res.send({ message: "Account already exist. Please log in" });
     }
 
-    const existingUser = await PendingUser.findOne({ email });
+    const existingUser = await PendingUser.findOne({
+      $and: [{ email }, { phoneNumber }],
+    });
 
     if (existingUser) {
       await PendingUser.findByIdAndDelete(existingUser._id);
@@ -81,12 +83,13 @@ router.post("/details", async (req, res) => {
     console.log("OTP", otp);
     const hashedOTP = hashOTP(otp);
 
-    await sendMail(email, firstName, otp);
+    // await sendOTP(phoneNumber, otp);
 
     const user = await PendingUser.create({
       firstName,
       lastName,
       email,
+      phoneNumber,
       hashedOTP,
       password: hashedPassword,
     });
@@ -99,10 +102,10 @@ router.post("/details", async (req, res) => {
 });
 
 router.post("/verify", async (req, res) => {
-  const { email, otp } = req.body;
+  const { phoneNumber, otp } = req.body;
 
   try {
-    const data = await PendingUser.findOne({ email });
+    const data = await PendingUser.findOne({ phoneNumber });
 
     const hashedOTP = hashOTP(otp);
     if (hashedOTP !== data.hashedOTP) {
@@ -112,6 +115,7 @@ router.post("/verify", async (req, res) => {
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
+      phoneNumber: data.phoneNumber,
       hashedOTP: data.hashedOTP,
       password: data.password,
     });

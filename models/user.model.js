@@ -7,7 +7,6 @@ const userSchema = new mongoose.Schema({
   },
   lastName: {
     type: String,
-    required: true,
   },
   email: {
     type: String,
@@ -24,14 +23,20 @@ const userSchema = new mongoose.Schema({
   },
   phoneNumber: {
     type: String,
-    validate: {
-      validator: function (v) {
-        const phoneRegex = /^\d{10}$/;
-        return phoneRegex.test(v);
-      },
-      message: "Invalid phone number format",
-    },
+
     unique: true,
+  },
+  familyMembers: {
+    type: Number,
+    default: 0,
+  },
+  isEmailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  isPhoneNumberVerified: {
+    type: Boolean,
+    default: false,
   },
 });
 
