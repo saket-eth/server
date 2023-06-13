@@ -3,7 +3,6 @@ const { google } = require("googleapis");
 const { OAuth2Client } = require("google-auth-library");
 const OAuth2 = google.auth.OAuth2;
 const User = require("../models/user.model");
-const PendingUser = require("../models/pending_user.model");
 
 const router = require("express").Router();
 const sha256 = require("sha256");
@@ -52,6 +51,7 @@ router.post("/google", async (req, res) => {
       firstName: given_name,
       lastName: family_name,
       email,
+      isEmailVerified: true,
     });
     const access_token = await generateAccessToken(user._id);
     res.send({ token: access_token });
@@ -62,22 +62,20 @@ router.post("/google", async (req, res) => {
 });
 
 router.post("/details", async (req, res) => {
-  const { firstName, lastName, email, phoneNumber, password } = req.body;
+  const { firstName, lastName, email, password } = req.body;
   try {
+    console.log("user: " + firstName + " " + lastName, email);
     const checkUser = await User.findOne({
-      $and: [{ email }, { phoneNumber }],
+      email,
     }).exec();
+
     if (checkUser) {
-      return res.send({ message: "Account already exist. Please log in" });
+      return res.send({ message: "Email already exists" });
     }
+    // if (checkUser.isEmailVerified || checkUser.isPhoneNumberVerified) {
+    //   return res.send({ message: "Account already exist. Please log in" });
+    // }
 
-    const existingUser = await PendingUser.findOne({
-      $and: [{ email }, { phoneNumber }],
-    });
-
-    if (existingUser) {
-      await PendingUser.findByIdAndDelete(existingUser._id);
-    }
     const hashedPassword = sha256(password.toString());
     const otp = generateOTP(6);
     console.log("OTP", otp);
@@ -85,11 +83,10 @@ router.post("/details", async (req, res) => {
 
     // await sendOTP(phoneNumber, otp);
 
-    const user = await PendingUser.create({
+    const user = await User.create({
       firstName,
       lastName,
       email,
-      phoneNumber,
       hashedOTP,
       password: hashedPassword,
     });
@@ -105,22 +102,16 @@ router.post("/verify", async (req, res) => {
   const { phoneNumber, otp } = req.body;
 
   try {
-    const data = await PendingUser.findOne({ phoneNumber });
+    const data = await User.findOne({ phoneNumber });
 
     const hashedOTP = hashOTP(otp);
     if (hashedOTP !== data.hashedOTP) {
       return res.send({ error: true, message: "Invalid OTP" });
     }
-    const user = await User.create({
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      phoneNumber: data.phoneNumber,
-      hashedOTP: data.hashedOTP,
-      password: data.password,
-    });
-
-    await PendingUser.deleteOne({ _id: data._id }).exec();
+    await User.findOneAndUpdate(
+      { phoneNumber },
+      { $set: { isPhoneNumberVerified: true } }
+    );
 
     return res.send({ message: "User verified successfully" });
   } catch (error) {
