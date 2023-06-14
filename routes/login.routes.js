@@ -20,7 +20,7 @@ router.post("/email", async (req, res) => {
     }
 
     const access_token = await generateAccessToken(user._id);
-    return res.send({ token: access_token });
+    return res.send({ error: false, token: access_token });
   } catch (error) {
     console.error("Error:", error);
     return res.status(500).json({ error: "Server error" });
