@@ -91,7 +91,8 @@ router.post("/details", async (req, res) => {
       password: hashedPassword,
     });
 
-    return res.send({ userId: user._id });
+    const access_token = await generateAccessToken(user._id);
+    return res.send({ token: access_token });
   } catch (error) {
     console.error("Error:", error);
     return res.send({ error: "Failed to signup " });
