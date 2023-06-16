@@ -21,11 +21,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
-  phoneNumber: {
-    type: String,
+  // phoneNumber: {
+  //   type: String,
 
-    unique: true,
-  },
+  //   unique: true,
+  // },
   familyMembers: {
     type: Number,
     default: 0,
